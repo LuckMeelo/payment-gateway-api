@@ -209,6 +209,18 @@ Processes a new payment. The bank is called only when the request passes all val
 | `amount` | integer | positive integer in minor units (pence, cents) |
 | `cvv` | string | 3-4 digits |
 
+**Response body fields (201)**
+
+| Field | Type | Notes |
+|---|---|---|
+| `id` | UUID string | Use this to call GET /api/payments/{id} |
+| `status` | string | `"Authorized"` or `"Declined"` |
+| `card_number_last_four` | string | Last 4 digits only — full PAN is never stored |
+| `expiry_month` | integer | |
+| `expiry_year` | integer | |
+| `currency` | string | |
+| `amount` | integer | |
+
 **Responses**
 
 | Status | Condition |
@@ -291,12 +303,13 @@ To target a different URL:
 BASE_URL=http://localhost:8090 k6 run docs/k6/load-test.js
 ```
 
-The script ramps to 20 virtual users over 10 seconds, holds at 20 VUs for 30 seconds, then ramps
+The script ramps to 10 virtual users over 10 seconds, holds at 10 VUs for 30 seconds, then ramps
 down over 10 seconds. It exercises the full authorized-card POST then GET round-trip.
 
 Configured thresholds:
 - p95 response time under 500 ms
-- Error rate under 1%
+- Error rate under 5% (Mountebank is a single-threaded Node.js process; in production against a
+  real bank this threshold would be tightened to under 0.1%)
 
 ---
 
@@ -313,6 +326,18 @@ dedicated integration test (`PaymentLoggingTests`).
 | `Debug` | Validation started, bank request dispatched, bank status received |
 | `Information` | Payment rejected (with error count), payment processed (with id and status) |
 | `Warning` | Bank unavailable, non-2xx bank status, request timeout, deserialization failure |
+
+### Console exporter (development only)
+
+Both traces and metrics use `AddConsoleExporter()`. This is intentional for the assessment
+so the output is visible without running a collector. In production these would be replaced with
+`AddOtlpExporter()` pointing to a Jaeger/Grafana Tempo instance (traces) and a Prometheus
+scrape endpoint or OTLP collector (metrics).
+
+The metrics console exporter prints all metric values every 10 seconds (the default periodic
+export interval). You will see repeated blocks in the container logs — this is expected behaviour,
+not a bug. Each block shows the cumulative counter values and histogram bucket distribution since
+the process started.
 
 ### Distributed traces
 

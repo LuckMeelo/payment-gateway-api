@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 using Microsoft.AspNetCore.Mvc.Testing;
 
@@ -15,9 +16,11 @@ namespace PaymentGateway.Api.Tests;
 [Trait("Category", "E2E")]
 public class PaymentGatewayE2ETests : IClassFixture<WebApplicationFactory<Program>>
 {
+    // Must match the API's serialization settings: snake_case properties + string enums.
     private static readonly JsonSerializerOptions SnakeCaseOptions = new()
     {
-        PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower
+        PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
+        Converters = { new JsonStringEnumConverter() }
     };
 
     private static readonly string BankBaseUrl =
