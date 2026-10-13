@@ -73,7 +73,13 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseHttpsRedirection();
+// TLS terminates at the load balancer; skip the app-level redirect inside the container.
+// Official .NET images set DOTNET_RUNNING_IN_CONTAINER=true key off that rather than
+// the environment, because the container runs as Development (for Swagger).
+if (!builder.Configuration.GetValue<bool>("DOTNET_RUNNING_IN_CONTAINER"))
+{
+    app.UseHttpsRedirection();
+}
 app.UseAuthorization();
 app.MapControllers();
 

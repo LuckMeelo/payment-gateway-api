@@ -1,0 +1,13 @@
+# Keep the build context small and prevent host build artefacts from leaking
+# into the image (bin/obj from a Windows host are wrong-platform binaries).
+**/bin/
+**/obj/
+**/.vs/
+**/.git/
+.github/
+test/
+**/*.user
+README.md
+Dockerfile
+.dockerignore
+docker-compose.yml
