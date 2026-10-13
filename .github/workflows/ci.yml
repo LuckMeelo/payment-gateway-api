@@ -27,4 +27,52 @@ jobs:
         run: dotnet build -c Release --no-restore -warnaserror
 
       - name: Test
-        run: dotnet test -c Release --no-build
+        run: dotnet test -c Release --no-build --filter "Category!=E2E"
+
+  e2e:
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+
+      - name: Start bank simulator
+        run: docker compose up -d bank_simulator
+
+      - name: Wait for bank simulator
+        run: |
+          for i in $(seq 1 30); do
+            if curl -sf http://localhost:2525; then
+              echo "Simulator ready"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Bank simulator did not become ready in time" && exit 1
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build -c Release --no-restore -warnaserror
+
+      - name: Test (E2E)
+        run: dotnet test -c Release --no-build --filter "Category=E2E"
+
+      - name: Tear down
+        if: always()
+        run: docker compose down
+
+  docker:
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t payment-gateway:ci .
