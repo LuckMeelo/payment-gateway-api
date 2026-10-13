@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
@@ -20,10 +21,11 @@ public class PaymentsControllerTests : IClassFixture<WebApplicationFactory<Progr
 {
     private readonly WebApplicationFactory<Program> _factory;
 
-    // Match the API's snake_case policy so ReadFromJsonAsync binds correctly
+    // Must match the API's serialization settings: snake_case properties + string enums.
     private static readonly JsonSerializerOptions SnakeCaseOptions = new()
     {
-        PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower
+        PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
+        Converters = { new JsonStringEnumConverter() }
     };
 
     public PaymentsControllerTests(WebApplicationFactory<Program> factory)

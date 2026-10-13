@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
 
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Options;
@@ -25,7 +26,14 @@ builder.Services.AddProblemDetails(options => options.CustomizeProblemDetails =
     ctx => ctx.ProblemDetails.Extensions["trace_id"] = ctx.HttpContext.TraceIdentifier);
 
 builder.Services.AddControllers()
-    .AddJsonOptions(options => options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower);
+    .AddJsonOptions(options =>
+    {
+        options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower;
+        // Serialize enum values as their string names (e.g. "Authorized") rather than
+        // integers. String enums are self-documenting in API responses and safer against
+        // enum reordering bugs.
+        options.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+    });
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
