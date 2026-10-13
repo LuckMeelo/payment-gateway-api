@@ -3,19 +3,22 @@ using System.Text.Json;
 using Microsoft.Extensions.Options;
 
 using PaymentGateway.Api.Bank;
+using PaymentGateway.Api.Persistence;
 using PaymentGateway.Api.Services;
+using PaymentGateway.Api.Validation;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
-
+builder.Services.AddProblemDetails();
 builder.Services.AddControllers()
     .AddJsonOptions(options => options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower);
-// Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddSingleton<PaymentRequestValidator>();
 builder.Services.AddSingleton<IPaymentsRepository, PaymentsRepository>();
+builder.Services.AddScoped<PaymentService>();
 
 builder.Services
     .AddOptions<BankOptions>()
@@ -32,7 +35,6 @@ builder.Services.AddHttpClient<IAcquiringBankClient, AcquiringBankClient>((servi
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -40,11 +42,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
 app.UseAuthorization();
-
 app.MapControllers();
-
 app.Run();
 
 public partial class Program { }
