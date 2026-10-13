@@ -1,5 +1,8 @@
 using System.Text.Json;
 
+using Microsoft.Extensions.Options;
+
+using PaymentGateway.Api.Bank;
 using PaymentGateway.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -13,6 +16,19 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 builder.Services.AddSingleton<IPaymentsRepository, PaymentsRepository>();
+
+builder.Services
+    .AddOptions<BankOptions>()
+    .Bind(builder.Configuration.GetSection(BankOptions.SectionName))
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+
+builder.Services.AddHttpClient<IAcquiringBankClient, AcquiringBankClient>((serviceProvider, http) =>
+    {
+        var options = serviceProvider.GetRequiredService<IOptions<BankOptions>>().Value;
+        http.BaseAddress = new Uri(options.BaseUrl);
+        http.Timeout = TimeSpan.FromSeconds(options.TimeoutSeconds);
+    });
 
 var app = builder.Build();
 
