@@ -23,7 +23,7 @@ public class PaymentRequestValidatorTests
         Cvv = "123"
     };
 
-    // ── Happy path ────────────────────────────────────────────────────────────
+    // Happy path
 
     [Fact]
     public void Validate_ValidRequest_ReturnsValid()
@@ -39,8 +39,7 @@ public class PaymentRequestValidatorTests
         Assert.Empty(result.Errors);
     }
 
-    // ── Card number ───────────────────────────────────────────────────────────
-
+    // Card number
     [Fact]
     public void Validate_NullCardNumber_ReturnsInvalid()
     {
@@ -123,7 +122,7 @@ public class PaymentRequestValidatorTests
         Assert.True(result.IsValid);
     }
 
-    // ── Expiry month ──────────────────────────────────────────────────────────
+    // Expiry month
 
     [Fact]
     public void Validate_NullExpiryMonth_ReturnsInvalid()
@@ -167,7 +166,7 @@ public class PaymentRequestValidatorTests
         Assert.NotEmpty(result.Errors);
     }
 
-    // ── Expiry date (combined month + year) ───────────────────────────────────
+    // Expiry date (combined month + year)
 
     [Fact]
     public void Validate_NullExpiryYear_ReturnsInvalid()
@@ -223,7 +222,7 @@ public class PaymentRequestValidatorTests
         Assert.True(result.IsValid);
     }
 
-    // ── Currency ──────────────────────────────────────────────────────────────
+    // Currency
 
     [Fact]
     public void Validate_NullCurrency_ReturnsInvalid()
@@ -267,7 +266,7 @@ public class PaymentRequestValidatorTests
         Assert.NotEmpty(result.Errors);
     }
 
-    // ── Amount ────────────────────────────────────────────────────────────────
+    // Amount
 
     [Fact]
     public void Validate_NullAmount_ReturnsInvalid()
@@ -311,7 +310,7 @@ public class PaymentRequestValidatorTests
         Assert.NotEmpty(result.Errors);
     }
 
-    // ── CVV ───────────────────────────────────────────────────────────────────
+    // CVV
 
     [Fact]
     public void Validate_NullCvv_ReturnsInvalid()

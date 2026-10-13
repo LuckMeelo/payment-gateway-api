@@ -1,3 +1,6 @@
+using System.Diagnostics.Metrics;
+
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Time.Testing;
 
 using NSubstitute;
@@ -6,6 +9,7 @@ using PaymentGateway.Api.Bank;
 using PaymentGateway.Api.Domain;
 using PaymentGateway.Api.Enums;
 using PaymentGateway.Api.Models.Requests;
+using PaymentGateway.Api.Observability;
 using PaymentGateway.Api.Persistence;
 using PaymentGateway.Api.Services;
 using PaymentGateway.Api.Validation;
@@ -14,7 +18,8 @@ namespace PaymentGateway.Api.Tests;
 
 public class PaymentServiceTests
 {
-    // Clock fixed at 2025-06-15 UTC — expiry tests relative to this date
+    // Clock fixed at 2025-06-15 UTC
+    // expiry tests relative to this date
     private static readonly FakeTimeProvider Clock =
         new(new DateTimeOffset(2025, 6, 15, 0, 0, 0, TimeSpan.Zero));
 
@@ -24,7 +29,11 @@ public class PaymentServiceTests
 
     public PaymentServiceTests()
     {
-        _service = new PaymentService(new PaymentRequestValidator(Clock), _bankClient, _repository);
+        _service = new PaymentService(
+            new PaymentRequestValidator(Clock),
+            _bankClient,
+            _repository,
+            Substitute.For<ILogger<PaymentService>>());
     }
 
     private static PostPaymentRequest ValidRequest() => new()
@@ -42,7 +51,7 @@ public class PaymentServiceTests
             .AuthorizeAsync(Arg.Any<BankAuthorizationRequest>(), Arg.Any<CancellationToken>())
             .Returns(Task.FromResult(new BankAuthorizationResult(status, code)));
 
-    // ── Rejected (validation fails) ───────────────────────────────────────────
+    // Rejected (validation fails)
 
     [Fact]
     public async Task ProcessAsync_InvalidRequest_ReturnsRejected_DoesNotCallBankOrStore()
@@ -80,7 +89,7 @@ public class PaymentServiceTests
             .AddAsync(Arg.Is<Payment>(p => p.Status == PaymentStatus.Authorized));
     }
 
-    // ── Declined ──────────────────────────────────────────────────────────────
+    // Declined
 
     [Fact]
     public async Task ProcessAsync_BankDeclines_ReturnsDeclinedAndStoresPayment()
@@ -99,7 +108,7 @@ public class PaymentServiceTests
             .AddAsync(Arg.Is<Payment>(p => p.Status == PaymentStatus.Declined));
     }
 
-    // ── Bank unavailable ──────────────────────────────────────────────────────
+    // Bank unavailable
 
     [Fact]
     public async Task ProcessAsync_BankUnavailable_ReturnsBankUnavailable_DoesNotStore()
@@ -115,7 +124,7 @@ public class PaymentServiceTests
         await _repository.DidNotReceive().AddAsync(Arg.Any<Payment>());
     }
 
-    // ── Security: only last four digits stored ────────────────────────────────
+    // Security: only last four digits stored
 
     [Fact]
     public async Task ProcessAsync_StoresOnlyLastFourDigits()
@@ -132,7 +141,7 @@ public class PaymentServiceTests
             .AddAsync(Arg.Is<Payment>(p => p.CardNumberLastFour == "8877"));
     }
 
-    // ── Wire format: expiry date sent as MM/YYYY ──────────────────────────────
+    // Wire format: expiry date sent as MM/YYYY
 
     [Fact]
     public async Task ProcessAsync_SendsExpiryAsMmYyyy()
@@ -153,5 +162,44 @@ public class PaymentServiceTests
         // Assert
         Assert.NotNull(captured);
         Assert.Equal("04/2027", captured!.ExpiryDate);
+    }
+
+    // Metrics: payments.processed counter
+
+    [Fact]
+    public async Task ProcessAsync_Authorized_IncrementsPaymentsProcessedCounter()
+    {
+        // Arrange
+        BankReturns(BankResponseStatus.Authorized, "code");
+
+        long? measuredValue = null;
+        string? statusTag = null;
+
+        using var listener = new MeterListener();
+        listener.InstrumentPublished = (instrument, l) =>
+        {
+            if (instrument.Meter.Name == PaymentGatewayDiagnostics.ServiceName
+                && instrument.Name == "payments.processed")
+            {
+                l.EnableMeasurementEvents(instrument);
+            }
+        };
+        listener.SetMeasurementEventCallback<long>((instrument, value, tags, _) =>
+        {
+            measuredValue = value;
+            foreach (var tag in tags)
+            {
+                if (tag.Key == "status")
+                    statusTag = tag.Value?.ToString();
+            }
+        });
+        listener.Start();
+
+        // Act
+        await _service.ProcessAsync(ValidRequest());
+
+        // Assert counter incremented by 1, tagged with the outcome status
+        Assert.Equal(1L, measuredValue);
+        Assert.Equal("Authorized", statusTag);
     }
 }

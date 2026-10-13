@@ -45,7 +45,7 @@ public class AcquiringBankClientTests
         return new AcquiringBankClient(httpClient, NoOpLogger<AcquiringBankClient>.Instance);
     }
 
-    // ── Happy paths ───────────────────────────────────────────────────────────
+    // Happy paths
 
     [Fact]
     public async Task AuthorizeAsync_BankAuthorizes_ReturnsAuthorizedWithCode()
@@ -88,7 +88,7 @@ public class AcquiringBankClientTests
         Assert.Equal(BankResponseStatus.Declined, result.Status);
     }
 
-    // ── Bank error responses → Unavailable ───────────────────────────────────
+    // Bank error responses → Unavailable
 
     [Fact]
     public async Task AuthorizeAsync_BankReturns503_ReturnsUnavailable()
@@ -144,7 +144,7 @@ public class AcquiringBankClientTests
         Assert.Equal(BankResponseStatus.Unavailable, result.Status);
     }
 
-    // ── Transport failures → Unavailable ─────────────────────────────────────
+    // Transport failures → Unavailable
 
     [Fact]
     public async Task AuthorizeAsync_BankTimesOut_ReturnsUnavailable()
@@ -185,7 +185,7 @@ public class AcquiringBankClientTests
         Assert.Equal(BankResponseStatus.Unavailable, result.Status);
     }
 
-    // ── Wire shape ────────────────────────────────────────────────────────────
+    // Wire shape
 
     [Fact]
     public async Task AuthorizeAsync_SendsSnakeCaseBodyWithExpiryDate()

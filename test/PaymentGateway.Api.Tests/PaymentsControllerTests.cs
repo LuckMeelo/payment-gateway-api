@@ -60,7 +60,7 @@ public class PaymentsControllerTests : IClassFixture<WebApplicationFactory<Progr
         Cvv = "123"
     };
 
-    // ── POST 201 ──────────────────────────────────────────────────────────────
+    //POST 201 
 
     [Fact]
     public async Task ProcessPayment_AuthorizedCard_Returns201WithLocationAndBody()
@@ -98,7 +98,7 @@ public class PaymentsControllerTests : IClassFixture<WebApplicationFactory<Progr
         Assert.Equal(PaymentStatus.Declined, body.Status);
     }
 
-    // ── POST 400 ──────────────────────────────────────────────────────────────
+    // POST 400 
 
     [Fact]
     public async Task ProcessPayment_InvalidRequest_Returns400RejectedAndDoesNotCallBank()
@@ -116,7 +116,7 @@ public class PaymentsControllerTests : IClassFixture<WebApplicationFactory<Progr
             .AuthorizeAsync(Arg.Any<BankAuthorizationRequest>(), Arg.Any<CancellationToken>());
     }
 
-    // ── POST 502 ──────────────────────────────────────────────────────────────
+    // POST 502 
 
     [Fact]
     public async Task ProcessPayment_BankUnavailable_Returns502()
@@ -131,7 +131,7 @@ public class PaymentsControllerTests : IClassFixture<WebApplicationFactory<Progr
         Assert.Equal(HttpStatusCode.BadGateway, response.StatusCode);
     }
 
-    // ── Round trip: POST then GET ─────────────────────────────────────────────
+    // Round trip: POST then GET
 
     [Fact]
     public async Task ProcessPayment_ThenGetById_ReturnsStoredPayment()
@@ -157,7 +157,7 @@ public class PaymentsControllerTests : IClassFixture<WebApplicationFactory<Progr
         Assert.Equal("8877", getBody.CardNumberLastFour);
     }
 
-    // ── GET 404 ───────────────────────────────────────────────────────────────
+    // GET 404
 
     [Fact]
     public async Task GetPayment_UnknownId_ReturnsNotFound()
