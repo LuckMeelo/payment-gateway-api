@@ -1,0 +1,141 @@
+# Payment Gateway API - HTTP Examples
+# Compatible with the VS Code REST Client extension and JetBrains HTTP Client.
+# Requires the full stack: docker compose up --build
+# Gateway base URL (change port to 5000 if running dotnet run locally without Docker)
+
+@baseUrl = http://localhost:8090
+
+###
+# POST - Authorized payment (card ending 1)
+# Expected: 201 Created, status = "Authorized"
+
+POST {{baseUrl}}/api/payments
+Content-Type: application/json
+
+{
+  "card_number": "2222405343248871",
+  "expiry_month": 12,
+  "expiry_year": 2030,
+  "currency": "GBP",
+  "amount": 1050,
+  "cvv": "123"
+}
+
+###
+# POST - Declined payment (card ending 2)
+# Expected: 201 Created, status = "Declined"
+
+POST {{baseUrl}}/api/payments
+Content-Type: application/json
+
+{
+  "card_number": "2222405343248872",
+  "expiry_month": 12,
+  "expiry_year": 2030,
+  "currency": "GBP",
+  "amount": 1050,
+  "cvv": "123"
+}
+
+###
+# POST - Bank unavailable (card ending 0 causes simulator to return 503)
+# Expected: 502 Bad Gateway
+
+POST {{baseUrl}}/api/payments
+Content-Type: application/json
+
+{
+  "card_number": "2222405343248870",
+  "expiry_month": 12,
+  "expiry_year": 2030,
+  "currency": "GBP",
+  "amount": 1050,
+  "cvv": "123"
+}
+
+###
+# POST - Rejected: missing card number
+# Expected: 400 Bad Request, payment_status = "Rejected", errors array populated
+
+POST {{baseUrl}}/api/payments
+Content-Type: application/json
+
+{
+  "expiry_month": 12,
+  "expiry_year": 2030,
+  "currency": "GBP",
+  "amount": 1050,
+  "cvv": "123"
+}
+
+###
+# POST - Rejected: expired card
+# Expected: 400 Bad Request, payment_status = "Rejected", "Card has expired."
+
+POST {{baseUrl}}/api/payments
+Content-Type: application/json
+
+{
+  "card_number": "2222405343248871",
+  "expiry_month": 1,
+  "expiry_year": 2020,
+  "currency": "GBP",
+  "amount": 1050,
+  "cvv": "123"
+}
+
+###
+# POST - Rejected: invalid currency (lowercase)
+# Expected: 400 Bad Request, payment_status = "Rejected"
+
+POST {{baseUrl}}/api/payments
+Content-Type: application/json
+
+{
+  "card_number": "2222405343248871",
+  "expiry_month": 12,
+  "expiry_year": 2030,
+  "currency": "gbp",
+  "amount": 1050,
+  "cvv": "123"
+}
+
+###
+# POST - Rejected: multiple errors (amount zero + CVV too short)
+# Expected: 400 Bad Request, errors array contains two entries
+
+POST {{baseUrl}}/api/payments
+Content-Type: application/json
+
+{
+  "card_number": "2222405343248871",
+  "expiry_month": 12,
+  "expiry_year": 2030,
+  "currency": "GBP",
+  "amount": 0,
+  "cvv": "12"
+}
+
+###
+# GET - Retrieve payment by id
+# Replace the UUID with an id returned from a POST above
+
+GET {{baseUrl}}/api/payments/00000000-0000-0000-0000-000000000000
+
+###
+# GET - Unknown id
+# Expected: 404 Not Found, ProblemDetails body
+
+GET {{baseUrl}}/api/payments/ffffffff-ffff-ffff-ffff-ffffffffffff
+
+###
+# GET - Health: liveness
+# Expected: 200, body "Healthy"
+
+GET {{baseUrl}}/health/live
+
+###
+# GET - Health: readiness
+# Expected: 200, body "Healthy"
+
+GET {{baseUrl}}/health/ready
